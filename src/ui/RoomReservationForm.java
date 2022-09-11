@@ -27,12 +27,26 @@ public class RoomReservationForm {
             return;
         }
 
-        boolean hasRooms = queryDates(checkIn, checkOut);
+        Collection<IRoom> rooms = HotelResource.instance.findARoom(checkIn, checkOut);
 
-        if (!hasRooms) {
+        if (rooms.isEmpty())
+        {
+            checkIn = moveByXdates(checkIn, 7);
+            checkOut = moveByXdates(checkOut, 7);
+
+            System.out.println("Rooms not available for original dates.\n Searching for alternative days");
+            System.out.println("Updated Checkin: " + checkIn);
+            System.out.println("Updated Checkout: " + checkOut);
+        }
+
+        rooms = HotelResource.instance.findARoom(checkIn, checkOut);
+
+        if (rooms.isEmpty()) {
             System.out.println("No Rooms available for dates. Please change your dates");
             return;
         }
+
+        rooms.forEach(iRoom -> System.out.println(iRoom));
 
         System.out.println("Would you like to book a room? y/n");
         FormUtils.Choice choice = FormUtils.getChoice();
@@ -58,44 +72,40 @@ public class RoomReservationForm {
             return;
         }
 
-        System.out.println("What room would you like to reserve?");
-        String roomNumber = FormUtils.getRoomNumber().toString();
+        IRoom selectedRoom = getSelectedRoom(rooms);
 
-        IRoom room = HotelResource.instance.getRoom(roomNumber);
-        if (room == null) {
-            System.out.println("Given room number doesn't exist. Returning to main");
-            return;
-        }
-
-        Reservation reservation = HotelResource.instance.bookARoom(email, room, checkIn, checkOut);
+        Reservation reservation = HotelResource.instance.bookARoom(email, selectedRoom, checkIn, checkOut);
         System.out.println(reservation);
     }
 
-    private boolean queryDates(Date checkIn, Date checkOut) {
-        Collection<IRoom> rooms = HotelResource.instance.findARoom(checkIn, checkOut);
+    private IRoom getSelectedRoom(Collection<IRoom> rooms) {
+        IRoom selectedRoom;
 
-        if (rooms.isEmpty())
-        {
-            Calendar cal = Calendar.getInstance();
-            cal.setTime(checkIn);
-            cal.add(Calendar.DATE, 7);
-            Date updatedCheckIn = cal.getTime();
+        while (true) {
+            System.out.println("What room would you like to reserve?");
+            String roomNumber = FormUtils.getRoomNumber().toString();
 
-            cal.setTime(checkOut);
-            cal.add(Calendar.DATE, 7);
-            Date updatedCheckout = cal.getTime();
+            boolean inAvailableList = rooms.stream()
+                    .filter((room) -> room.getRoomNumber().equals(roomNumber))
+                    .count() == 1;
+            if (!inAvailableList) {
+                System.out.println("The room selected is not in available list for the given dates.");
+                continue;
+            }
 
-            System.out.println("Rooms not available for original dates.\n Searching for alternative days");
-            System.out.println("Updated Checkin: " + updatedCheckIn.toString());
-            System.out.println("Updated Checkout: " + updatedCheckout.toString());
-            rooms = HotelResource.instance.findARoom(updatedCheckIn, updatedCheckout);
+            selectedRoom = HotelResource.instance.getRoom(roomNumber);
+            break;
         }
 
-        rooms.forEach(iRoom -> System.out.println(iRoom));
-
-        return !rooms.isEmpty();
+        return selectedRoom;
     }
 
+    private Date moveByXdates(Date current, int X) {
+        Calendar cal = Calendar.getInstance();
+        cal.setTime(current);
+        cal.add(Calendar.DATE, X);
+        return cal.getTime();
+    }
     private Date getDate() {
         Date date;
         while (true) {
