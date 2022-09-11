@@ -33,25 +33,31 @@ public class ReservationService {
         return reservation;
     }
 
-    private void addReservationToDateMap(IRoom room, Date checkInDate, Date checkOutDate) {
+    void addReservationToDateMap(IRoom room, Date checkInDate, Date checkOutDate) {
         Calendar cal = Calendar.getInstance();
         cal.setTime(checkInDate);
+        String roomNUmber = room.getRoomNumber();
+
+        addRoomToDate(checkInDate, roomNUmber);
+
         while (cal.getTime().before(checkOutDate)) {
             Date current = cal.getTime();
-            String roomNUmber = room.getRoomNumber();
-            if (bookedRoomsForDateMap.containsKey(current)){
-                bookedRoomsForDateMap.get(current).add(roomNUmber);
-            } else {
-                ArrayList<String> reservations = new ArrayList<>();
-                reservations.add(roomNUmber);
-                bookedRoomsForDateMap.put(current, reservations);
-            }
-
+            addRoomToDate(current, roomNUmber);
             cal.add(Calendar.DATE, 1);
         }
     }
 
-    private void addToReservationList(Reservation reservation, String email) {
+    private void addRoomToDate(Date current, String roomNUmber) {
+        if (bookedRoomsForDateMap.containsKey(current)){
+            bookedRoomsForDateMap.get(current).add(roomNUmber);
+        } else {
+            ArrayList<String> reservations = new ArrayList<>();
+            reservations.add(roomNUmber);
+            bookedRoomsForDateMap.put(current, reservations);
+        }
+    }
+
+    void addToReservationList(Reservation reservation, String email) {
         if (reservationListMap.containsKey(email)) {
             reservationListMap.get(email).add(reservation);
         } else {
@@ -66,7 +72,7 @@ public class ReservationService {
 
         Calendar cal = Calendar.getInstance();
         cal.setTime(checkInDate);
-        while (cal.getTime().before(checkOutDate)) {
+        while (cal.getTime().before(checkOutDate) || cal.getTime().equals(checkOutDate)) {
             Date current = cal.getTime();
 
             if (bookedRoomsForDateMap.containsKey(current)){
